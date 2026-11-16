@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="id"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RailTicket adalah prototype simulasi pemesanan perjalanan kereta antarkota.">
+  <meta name="theme-color" content="#123b70">
+  <title>RailTicket — Simulasi Pemesanan Kereta</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    :root{--navy:#123b70;--blue:#2685e8;--cyan:#42c6e8;--orange:#ff9b42;--ink:#193249;--muted:#60748a}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,sans-serif;color:var(--ink)}
+    .app-shell{width:100%;min-height:100%;background:linear-gradient(155deg,#f4f7fb,#ecf9ff 54%,#f4f7fb)}
+    [hidden]{display:none!important}
+    .screen{animation:rise .24s ease both}
+    @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+    .surface{box-shadow:0 14px 38px rgba(18,59,112,.09)}
+    .field{width:100%;min-height:48px;border:1px solid #cad9e9;border-radius:12px;background:#fff;padding:11px 13px;color:var(--ink);outline:none}
+    .field:focus{border-color:var(--blue);box-shadow:0 0 0 3px #dceeff}
+    button{cursor:pointer}
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+    .primary{background:var(--blue);color:white}
+    .primary:hover{background:#176cca}
+    .secondary{background:#fff;color:var(--navy);border:1px solid #cbdbea}
+    .secondary:hover{background:#edf7ff}
+    .nav-button[aria-current=page]{background:#e8f5ff;color:var(--navy)}
+    .suggestions{position:absolute;z-index:30;top:100%;left:0;right:0;max-height:220px;overflow:auto;background:#fff;border:1px solid #cbdbea;border-radius:12px;box-shadow:0 15px 30px #123b7025}
+    .suggestions button{width:100%;display:block;text-align:left;padding:11px 13px}
+    .suggestions button:hover,.suggestions button:focus{background:#eaf4ff}
+    .eyebrow{letter-spacing:.11em}
+    .train-art{filter:drop-shadow(0 16px 12px #092c5870)}
+    .route-line{height:2px;background:repeating-linear-gradient(90deg,#42c6e8 0 8px,transparent 8px 14px);position:relative}
+    .route-line:before,.route-line:after{content:"";position:absolute;top:-4px;width:10px;height:10px;background:#2685e8;border-radius:50%}
+    .route-line:before{left:0}.route-line:after{right:0}
+    .ticket-dash{border-top:2px dashed #cbdbea}
+    .step{border-radius:999px;background:#eaf4ff;color:#123b70;padding:7px 13px;font-size:12px;font-weight:700}
+    .step.active{background:#123b70;color:white}
+    @media(max-width:640px){.nav-button{font-size:12px;padding:8px 9px}.field{font-size:16px}}
+  </style>
+  <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js" type="text/javascript"></script>
+ </head>
+ <body data-template-id="__page-root" style="background: rgb(244, 247, 251);">
+  <div class="app-shell">
+   <header data-template-id="site-header" class="canva-header bg-white border-b border-slate-200" style="background: rgb(255, 255, 255);">
+    <div class="max-w-6xl mx-auto px-4 sm:px-7 py-4 flex flex-wrap items-center justify-between gap-4">
+     <div class="flex items-center gap-3"><span class="w-11 h-11 rounded-xl bg-[#123b70] text-white grid place-items-center" aria-hidden="true"><i data-lucide="train-front" class="w-6 h-6"></i></span> <span data-template-id="brand-name" class="canva-text font-extrabold tracking-tight" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 21px;">RailTicket</span>
+     </div>
+     <nav aria-label="Navigasi utama" class="flex flex-wrap gap-1"><button type="button" class="nav-button rounded-lg px-3 py-2 font-semibold" data-go="home" aria-current="page"><span data-template-id="nav-home" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">Beranda</span></button> <button type="button" class="nav-button rounded-lg px-3 py-2 font-semibold" data-go="home" data-focus-search="true"><span data-template-id="nav-book" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">Pesan Tiket</span></button> <button type="button" class="nav-button rounded-lg px-3 py-2 font-semibold" data-go="schedules"><span data-template-id="nav-schedules" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">Jadwal Kereta</span></button> <button type="button" class="nav-button rounded-lg px-3 py-2 font-semibold" data-go="history"><span data-template-id="nav-history" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">Riwayat Pesanan</span></button> <button type="button" class="nav-button rounded-lg px-3 py-2 font-semibold" data-go="help"><span data-template-id="nav-help" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">Bantuan</span></button>
+     </nav>
+    </div>
+   </header>
+   <div data-template-id="simulation-banner" class="canva-banner bg-[#fff3e5] border-b border-orange-200" style="background: rgb(255, 243, 229);">
+    <p data-template-id="simulation-copy" class="canva-text max-w-6xl mx-auto px-4 sm:px-7 py-2" style="color: rgb(128, 80, 14); font-weight: 400; font-style: normal; font-size: 13px;">SIMULASI · RailTicket bukan layanan resmi KAI. Jadwal, kursi, harga, pembayaran, dan e-ticket di halaman ini bukan transaksi atau tiket sungguhan.</p>
+   </div>
+   <main class="max-w-6xl mx-auto px-4 sm:px-7 py-8 sm:py-11">
+    <div id="global-message" role="status" class="bg-[#fff3e5] text-[#80500e] rounded-xl px-5 py-3 mb-6" hidden=""></div>
+    <section id="home" class="screen">
+     <div class="grid lg:grid-cols-[1.1fr_.9fr] gap-8 items-center mb-8">
+      <div><span data-template-id="hero-eyebrow" class="canva-tag eyebrow inline-block bg-[#e8f5ff] text-[#123b70] rounded-full px-4 py-2 mb-5 font-bold" style="background: rgb(232, 245, 255); color: rgb(18, 59, 112); font-weight: 400; font-style: normal; font-size: 12px;">JELAJAHI INDONESIA DENGAN KERETA</span>
+       <h1 data-template-id="hero-title" class="canva-text font-extrabold tracking-tight leading-tight mb-4" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Jelajahi Perjalananmu Bersama RailTicket</h1>
+       <p data-template-id="hero-subtitle" class="canva-text font-semibold mb-4" style="color: rgb(38, 133, 232); font-weight: 700; font-style: normal; font-size: 16px;">Pesan tiket kereta dengan mudah, nyaman, dan praktis</p>
+       <p data-template-id="hero-description" class="canva-text leading-relaxed max-w-xl" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Cari rute antarkota, bandingkan jadwal, dan coba seluruh perjalanan pemesanan dalam satu prototype interaktif.</p>
+      </div>
+      <div data-template-id="hero-graphic" class="canva-panel relative overflow-hidden rounded-3xl min-h-64 p-7 sm:p-10 flex items-center" style="background: rgb(18, 59, 112);">
+       <div class="absolute -right-12 -top-20 w-64 h-64 border-[36px] border-white/10 rounded-full"></div>
+       <svg class="train-art relative w-full" viewBox="0 0 520 220" role="img" aria-label="Ilustrasi kereta putih dan turquoise melaju antarkota"><path d="M28 186H497" stroke="#ffd166" stroke-width="7" stroke-linecap="round"></path> <path d="M65 47Q74 27 120 27H390Q445 27 461 72L478 160Q479 179 458 179H55Q38 179 42 155Z" fill="#fff"></path> <path d="M49 137H473L478 160Q479 179 458 179H55Q38 179 42 155Z" fill="#42c6e8"></path> <path d="M80 54H386Q421 54 431 81L439 111H74Z" fill="#123b70"></path> <path d="M170 55V110M270 55V110M370 55V110" stroke="white" stroke-width="8"></path> <circle cx="117" cy="183" r="16" fill="#123b70"></circle><circle cx="396" cy="183" r="16" fill="#123b70"></circle>
+       </svg><span data-template-id="hero-route" class="canva-tag absolute bottom-5 left-6 bg-white rounded-xl shadow px-4 py-2 font-bold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 16px;">Bandung → Yogyakarta</span>
+      </div>
+     </div>
+     <section id="search-area" data-template-id="search-panel" class="canva-panel bg-white rounded-2xl surface border border-slate-100 p-5 sm:p-8" style="background: rgb(255, 255, 255);">
+      <h2 data-template-id="search-heading" class="canva-text font-bold mb-5" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Cari perjalanan kereta</h2>
+      <form id="search-form" novalidate="">
+       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="relative"><label data-template-id="origin-label" for="origin" class="canva-text block font-semibold mb-2" style="color: rgb(25, 50, 73); font-weight: 400; font-style: normal; font-size: 16px;">Stasiun asal</label> <input id="origin" class="field" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="origin-options" required="">
+         <div id="origin-options" class="suggestions" role="listbox" hidden=""></div>
+        </div>
+        <div class="relative"><label data-template-id="destination-label" for="destination" class="canva-text block font-semibold mb-2" style="color: rgb(25, 50, 73); font-weight: 400; font-style: normal; font-size: 16px;">Stasiun tujuan</label> <input id="destination" class="field" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destination-options" required="">
+         <div id="destination-options" class="suggestions" role="listbox" hidden=""></div>
+        </div>
+        <div>
+         <label data-template-id="date-label" for="travel-date" class="canva-text block font-semibold mb-2" style="color: rgb(25, 50, 73); font-weight: 400; font-style: normal; font-size: 16px;">Tanggal keberangkatan</label><input id="travel-date" type="date" class="field" required="">
+        </div>
+        <div>
+         <label data-template-id="count-label" for="passenger-count" class="canva-text block font-semibold mb-2" style="color: rgb(25, 50, 73); font-weight: 400; font-style: normal; font-size: 16px;">Jumlah penumpang</label><select id="passenger-count" class="field"><option value="1">1 penumpang</option><option value="2">2 penumpang</option><option value="3">3 penumpang</option><option value="4">4 penumpang</option></select>
+        </div>
+       </div>
+       <div class="flex flex-wrap gap-3 mt-6"><button data-template-id="swap-button" id="swap-button" type="button" class="canva-button secondary rounded-xl px-5 py-3 font-semibold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 600; font-style: normal; font-size: 16px;">⇄ Tukar stasiun</button> <button data-template-id="search-button" type="submit" class="canva-button primary rounded-xl px-7 py-3 font-bold flex-1 sm:flex-none" style="background: rgb(38, 133, 232); color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 16px;">Cari Tiket</button>
+       </div>
+       <p id="search-error" role="alert" class="text-red-700 mt-3" hidden=""></p>
+      </form>
+     </section>
+     <div class="grid md:grid-cols-2 gap-5 mt-6">
+      <aside data-template-id="promo-panel" class="canva-banner rounded-2xl p-6" style="background: rgb(255, 155, 66);"><span aria-hidden="true" class="text-3xl">🎟️</span>
+       <h2 data-template-id="promo-title" class="canva-text font-bold mt-2 mb-2" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Promo perjalanan</h2>
+       <p data-template-id="promo-copy" class="canva-text" style="color: rgb(25, 50, 73); font-weight: 400; font-style: normal; font-size: 16px;">Inspirasi promo hingga 20% untuk perjalanan berikutnya. Promo hanya ilustrasi dan tidak mengurangi harga simulasi.</p>
+      </aside>
+      <aside data-template-id="recommendation-panel" class="canva-banner rounded-2xl p-6" style="background: rgb(221, 248, 255);"><span aria-hidden="true" class="text-3xl">🚉</span>
+       <h2 data-template-id="recommendation-title" class="canva-text font-bold mt-2 mb-2" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Rekomendasi perjalanan</h2>
+       <p data-template-id="recommendation-copy" class="canva-text" style="color: rgb(25, 50, 73); font-weight: 400; font-style: normal; font-size: 16px;">Coba Bandung–Yogyakarta untuk perjalanan wisata, Jakarta–Bandung untuk liburan singkat, atau Yogyakarta–Solo untuk perjalanan dekat.</p>
+      </aside>
+     </div>
+     <section class="mt-11">
+      <h2 data-template-id="popular-title" class="canva-text font-bold mb-5" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Rute populer</h2>
+      <div class="grid sm:grid-cols-3 gap-4"><button type="button" data-route="Bandung|Yogyakarta" class="route-pick text-left bg-white rounded-2xl border border-slate-200 p-5 hover:border-blue-400"><span data-template-id="route-1" class="canva-text font-bold" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 16px;">Bandung → Yogyakarta</span></button> <button type="button" data-route="Jakarta|Surabaya" class="route-pick text-left bg-white rounded-2xl border border-slate-200 p-5 hover:border-blue-400"><span data-template-id="route-2" class="canva-text font-bold" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 16px;">Jakarta → Surabaya</span></button> <button type="button" data-route="Yogyakarta|Solo" class="route-pick text-left bg-white rounded-2xl border border-slate-200 p-5 hover:border-blue-400"><span data-template-id="route-3" class="canva-text font-bold" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 16px;">Yogyakarta → Solo</span></button>
+      </div>
+     </section>
+     <section class="mt-11">
+      <h2 data-template-id="benefits-title" class="canva-text font-bold mb-5" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Kenapa mencoba RailTicket?</h2>
+      <div class="grid sm:grid-cols-3 gap-4">
+       <article class="bg-white rounded-2xl p-5 border border-slate-100">
+        <h3 data-template-id="benefit-1-title" class="canva-text font-bold mb-2" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 19px;">Pencarian praktis</h3>
+        <p data-template-id="benefit-1-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Temukan stasiun dengan mengetik kota atau nama stasiun.</p>
+       </article>
+       <article class="bg-white rounded-2xl p-5 border border-slate-100">
+        <h3 data-template-id="benefit-2-title" class="canva-text font-bold mb-2" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 19px;">Bandingkan jadwal</h3>
+        <p data-template-id="benefit-2-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Lihat waktu, kelas, harga, durasi, dan ketersediaan kursi simulasi.</p>
+       </article>
+       <article class="bg-white rounded-2xl p-5 border border-slate-100">
+        <h3 data-template-id="benefit-3-title" class="canva-text font-bold mb-2" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 19px;">Coba alur lengkap</h3>
+        <p data-template-id="benefit-3-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Dari pencarian hingga e-ticket simulasi dalam satu halaman.</p>
+       </article>
+      </div>
+     </section>
+    </section>
+    <section id="schedules" class="screen" hidden=""><button data-template-id="back-search" type="button" data-go="home" data-focus-search="true" class="canva-button secondary rounded-xl px-4 py-2 mb-6 font-semibold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 400; font-style: normal; font-size: 16px;">← Ubah pencarian</button>
+     <h1 data-template-id="schedules-title" class="canva-text font-extrabold mb-2" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Pilih jadwal kereta</h1>
+     <p id="schedule-query" class="text-slate-600 mb-6" aria-live="polite"></p>
+     <div class="bg-white border border-slate-200 rounded-2xl p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      <div>
+       <label data-template-id="price-filter-label" for="price-filter" class="canva-text block font-semibold mb-2" style="font-weight: 400; font-style: normal; font-size: 16px;">Harga maksimum</label><select id="price-filter" class="field"><option value="all">Semua harga</option><option value="200000">Hingga Rp200.000</option><option value="350000">Hingga Rp350.000</option><option value="500000">Hingga Rp500.000</option></select>
+      </div>
+      <div>
+       <label data-template-id="time-filter-label" for="time-filter" class="canva-text block font-semibold mb-2" style="font-weight: 400; font-style: normal; font-size: 16px;">Waktu berangkat</label><select id="time-filter" class="field"><option value="all">Semua waktu</option><option value="pagi">Pagi · sebelum 12.00</option><option value="siang">Siang · 12.00–17.59</option><option value="malam">Malam · mulai 18.00</option></select>
+      </div>
+      <div>
+       <label data-template-id="class-filter-label" for="class-filter" class="canva-text block font-semibold mb-2" style="font-weight: 400; font-style: normal; font-size: 16px;">Kelas</label><select id="class-filter" class="field"><option value="all">Semua kelas</option><option>Ekonomi</option><option>Bisnis</option><option>Eksekutif</option></select>
+      </div>
+      <div>
+       <label data-template-id="duration-filter-label" for="duration-filter" class="canva-text block font-semibold mb-2" style="font-weight: 400; font-style: normal; font-size: 16px;">Durasi maksimum</label><select id="duration-filter" class="field"><option value="all">Semua durasi</option><option value="180">Maksimal 3 jam</option><option value="420">Maksimal 7 jam</option><option value="600">Maksimal 10 jam</option></select>
+      </div>
+     </div>
+     <div id="schedule-list" class="grid gap-4"></div>
+     <div id="unavailable" class="bg-white border border-slate-200 rounded-2xl p-8 text-center" hidden="">
+      <div aria-hidden="true" class="text-5xl mb-3">
+       🚉
+      </div>
+      <h2 data-template-id="unavailable-title" class="canva-text font-bold mb-3" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Jadwal tidak tersedia</h2>
+      <p data-template-id="unavailable-copy" class="canva-text mb-5" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Maaf, belum tersedia jadwal kereta untuk rute dan tanggal ini</p><button data-template-id="change-search" data-go="home" data-focus-search="true" type="button" class="canva-button primary rounded-xl px-5 py-3 font-semibold" style="background: rgb(38, 133, 232); color: rgb(255, 255, 255); font-weight: 600; font-style: normal; font-size: 16px;">Ubah rute atau tanggal</button>
+     </div>
+     <p id="filtered-empty" class="bg-white rounded-xl p-5 text-slate-600" hidden="">Tidak ada jadwal yang cocok dengan filter. Ubah pilihan filter untuk melihat jadwal lain.</p>
+     <p data-template-id="schedule-note" class="canva-text mt-6" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 13px;">Semua jadwal, harga, dan jumlah kursi adalah data simulasi, bukan informasi resmi KAI.</p>
+    </section>
+    <section id="detail" class="screen" hidden=""><button data-template-id="back-results" data-go="schedules" type="button" class="canva-button secondary rounded-xl px-4 py-2 mb-6 font-semibold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 400; font-style: normal; font-size: 16px;">← Kembali ke jadwal</button>
+     <h1 data-template-id="detail-title" class="canva-text font-extrabold mb-6" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Detail kereta</h1>
+     <article data-template-id="detail-panel" class="canva-panel bg-white rounded-2xl p-6 sm:p-8 surface border border-slate-100" style="background: rgb(255, 255, 255);">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-7">
+       <div>
+        <p class="text-sm font-semibold text-[#2685e8]">KERETA PILIHAN</p>
+        <h2 id="detail-name" class="font-extrabold text-2xl text-[#123b70]"></h2>
+       </div><span id="detail-class" class="bg-[#eaf4ff] text-[#123b70] rounded-full px-4 py-2 font-semibold"></span>
+      </div>
+      <div id="detail-summary" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      <div class="ticket-dash my-7"></div>
+      <p data-template-id="detail-disclaimer" class="canva-text mb-6" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Ringkasan perjalanan ini hanya contoh. Ketersediaan kursi dan waktu tidak terhubung dengan sistem kereta resmi.</p><button data-template-id="continue-booking" id="continue-booking" type="button" class="canva-button primary rounded-xl px-6 py-3 font-bold" style="background: rgb(38, 133, 232); color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 16px;">Lanjutkan Pemesanan</button>
+     </article>
+    </section>
+    <section id="passengers" class="screen" hidden=""><button data-template-id="back-detail" data-go="detail" type="button" class="canva-button secondary rounded-xl px-4 py-2 mb-6 font-semibold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 400; font-style: normal; font-size: 16px;">← Kembali ke detail</button>
+     <h1 data-template-id="passengers-title" class="canva-text font-extrabold mb-2" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Data penumpang</h1>
+     <p data-template-id="passengers-intro" class="canva-text mb-6" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Isi nama tiap penumpang, pilih kursi yang berbeda, dan berikan kontak untuk simulasi. Jangan masukkan NIK, paspor, atau nomor identitas pemerintah.</p>
+     <div class="grid lg:grid-cols-[1.5fr_.8fr] gap-6 items-start">
+      <form id="passenger-form" data-template-id="passenger-panel" class="canva-panel bg-white rounded-2xl p-5 sm:p-8 surface" novalidate="" style="background: rgb(255, 255, 255);">
+       <div class="mb-5 grid sm:grid-cols-2 gap-4">
+        <div>
+         <label data-template-id="contact-phone-label" for="contact-phone" class="canva-text block font-semibold mb-2" style="font-weight: 400; font-style: normal; font-size: 16px;">Nomor telepon kontak *</label><input id="contact-phone" type="tel" autocomplete="tel" class="field" required="">
+        </div>
+        <div>
+         <label data-template-id="contact-email-label" for="contact-email" class="canva-text block font-semibold mb-2" style="font-weight: 400; font-style: normal; font-size: 16px;">Email kontak *</label><input id="contact-email" type="email" autocomplete="email" class="field" required="">
+        </div>
+       </div>
+       <div id="passenger-fields" class="space-y-4"></div>
+       <p id="passenger-error" role="alert" class="text-red-700 mt-4" hidden=""></p><button data-template-id="to-payment" type="submit" class="canva-button primary rounded-xl px-6 py-3 font-bold mt-6" style="background: rgb(38, 133, 232); color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 16px;">Lanjutkan ke Pembayaran</button>
+      </form>
+      <aside data-template-id="passenger-summary-panel" class="canva-panel bg-white rounded-2xl p-6 surface" style="background: rgb(255, 255, 255);">
+       <h2 data-template-id="passenger-summary-title" class="canva-text font-bold mb-4" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Ringkasan perjalanan</h2>
+       <div id="passenger-summary" class="grid gap-4"></div>
+      </aside>
+     </div>
+    </section>
+    <section id="payment" class="screen" hidden=""><button data-template-id="back-passengers" data-go="passengers" type="button" class="canva-button secondary rounded-xl px-4 py-2 mb-6 font-semibold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 400; font-style: normal; font-size: 16px;">← Kembali ke penumpang</button>
+     <h1 data-template-id="payment-title" class="canva-text font-extrabold mb-2" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Pembayaran simulasi</h1>
+     <p data-template-id="payment-intro" class="canva-text mb-6" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Periksa rincian dan pilih metode contoh. Tidak ada pembayaran sungguhan atau pemotongan dana.</p>
+     <div class="grid lg:grid-cols-[1.2fr_.8fr] gap-6 items-start">
+      <section data-template-id="payment-panel" class="canva-panel bg-white rounded-2xl p-6 sm:p-8 surface" style="background: rgb(255, 255, 255);">
+       <h2 data-template-id="method-title" class="canva-text font-bold mb-4" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Pilih metode pembayaran</h2>
+       <fieldset class="grid gap-3"><legend class="sr-only">Metode pembayaran simulasi</legend> <label class="border border-slate-200 rounded-xl p-4 flex items-center gap-3 cursor-pointer"><input type="radio" name="method" value="Transfer Bank"><span data-template-id="method-bank" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">Transfer Bank</span></label> <label class="border border-slate-200 rounded-xl p-4 flex items-center gap-3 cursor-pointer"><input type="radio" name="method" value="E-wallet"><span data-template-id="method-wallet" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">E-wallet</span></label> <label class="border border-slate-200 rounded-xl p-4 flex items-center gap-3 cursor-pointer"><input type="radio" name="method" value="Virtual Account"><span data-template-id="method-va" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 16px;">Virtual Account</span></label>
+       </fieldset>
+       <p id="payment-error" role="alert" class="text-red-700 mt-4" hidden=""></p><button data-template-id="pay-button" id="pay-button" type="button" class="canva-button primary rounded-xl px-6 py-3 font-bold mt-6" style="background: rgb(38, 133, 232); color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 16px;">Bayar Sekarang · Simulasi</button>
+       <p data-template-id="payment-note" class="canva-text mt-4" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 13px;">Dengan melanjutkan, Anda hanya membuat catatan pemesanan contoh di browser ini. Tidak ada transaksi nyata.</p>
+      </section>
+      <aside data-template-id="payment-summary-panel" class="canva-panel bg-white rounded-2xl p-6 surface" style="background: rgb(255, 255, 255);">
+       <h2 data-template-id="payment-summary-title" class="canva-text font-bold mb-4" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Rincian pembayaran</h2>
+       <div id="payment-summary" class="grid gap-3"></div>
+       <div class="ticket-dash my-5"></div>
+       <div class="flex items-center justify-between gap-3">
+        <span data-template-id="total-label" class="canva-text font-semibold" style="color: rgb(25, 50, 73); font-weight: 600; font-style: normal; font-size: 16px;">Total simulasi</span><strong id="payment-total" class="text-[#123b70] text-xl"></strong>
+       </div>
+      </aside>
+     </div>
+    </section>
+    <section id="success" class="screen" hidden="">
+     <div class="max-w-2xl mx-auto bg-white surface rounded-3xl p-7 sm:p-10 text-center">
+      <div class="w-16 h-16 bg-[#dff8ee] text-[#128560] rounded-full grid place-items-center mx-auto mb-5">
+       <i data-lucide="check" class="w-9 h-9"></i>
+      </div>
+      <h1 data-template-id="success-title" class="canva-text font-extrabold mb-3" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Pemesanan Berhasil!</h1>
+      <p data-template-id="success-copy" class="canva-text mb-5" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Pemesanan simulasi telah dicatat di browser ini. Tidak ada tiket resmi atau pembayaran nyata yang diterbitkan.</p>
+      <p id="success-code" class="text-[#123b70] font-extrabold text-lg mb-5"></p>
+      <div id="success-summary" class="grid sm:grid-cols-2 gap-4 text-left border-y border-slate-200 py-5 mb-6"></div>
+      <div class="flex flex-wrap justify-center gap-3"><button data-template-id="view-ticket" data-go="ticket" type="button" class="canva-button primary rounded-xl px-5 py-3 font-semibold" style="background: rgb(38, 133, 232); color: rgb(255, 255, 255); font-weight: 600; font-style: normal; font-size: 16px;">Lihat Tiket</button> <button data-template-id="success-home" data-go="home" type="button" class="canva-button secondary rounded-xl px-5 py-3 font-semibold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 600; font-style: normal; font-size: 16px;">Kembali ke Beranda</button>
+      </div>
+     </div>
+    </section>
+    <section id="ticket" class="screen" hidden=""><button data-template-id="back-ticket" type="button" data-go="history" class="canva-button secondary rounded-xl px-4 py-2 mb-6 font-semibold" style="background: rgb(255, 255, 255); color: rgb(18, 59, 112); font-weight: 400; font-style: normal; font-size: 16px;">← Riwayat Pesanan</button>
+     <h1 data-template-id="ticket-title" class="canva-text font-extrabold mb-6" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">E-ticket perjalanan</h1>
+     <article class="max-w-3xl mx-auto overflow-hidden bg-white rounded-3xl surface border border-slate-200">
+      <div data-template-id="ticket-header" class="canva-banner p-6 sm:p-8 flex flex-wrap gap-3 justify-between items-center" style="background: rgb(18, 59, 112);">
+       <div>
+        <p data-template-id="ticket-brand" class="canva-text font-extrabold" style="color: rgb(255, 255, 255); font-weight: 800; font-style: normal; font-size: 16px;">RailTicket</p>
+        <p data-template-id="ticket-kind" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 400; font-style: normal; font-size: 13px;">E-TICKET PERJALANAN · PROTOTYPE</p>
+       </div><span data-template-id="ticket-stamp" class="canva-tag bg-[#ff9b42] text-[#123b70] rounded-full px-4 py-2 font-extrabold" style="background: rgb(255, 155, 66); color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 16px;">SIMULASI</span>
+      </div>
+      <div class="p-6 sm:p-8">
+       <div id="ticket-content" class="grid sm:grid-cols-2 gap-5"></div>
+       <div class="ticket-dash my-7"></div>
+       <p data-template-id="ticket-warning" class="canva-text" style="color: rgb(128, 80, 14); font-weight: 700; font-style: normal; font-size: 16px;">BUKAN TIKET RESMI. E-ticket ini tidak berlaku untuk naik kereta dan tidak terhubung dengan KAI.</p>
+      </div>
+     </article>
+    </section>
+    <section id="history" class="screen" hidden="">
+     <h1 data-template-id="history-title" class="canva-text font-extrabold mb-2" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Riwayat Pesanan</h1>
+     <p data-template-id="history-intro" class="canva-text mb-6" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Pemesanan simulasi yang tersimpan pada browser dan perangkat ini.</p>
+     <div id="history-list" class="grid gap-4"></div>
+     <div id="history-empty" class="bg-white rounded-2xl p-8 border border-slate-200">
+      <p data-template-id="history-empty-copy" class="canva-text mb-5" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Belum ada pemesanan. Cari jadwal, pilih kereta, dan selesaikan pembayaran simulasi untuk melihat e-ticket di sini.</p><button data-template-id="history-start" data-go="home" data-focus-search="true" type="button" class="canva-button primary rounded-xl px-5 py-3 font-semibold" style="background: rgb(38, 133, 232); color: rgb(255, 255, 255); font-weight: 600; font-style: normal; font-size: 16px;">Mulai Cari Tiket</button>
+     </div>
+    </section>
+    <section id="help" class="screen" hidden="">
+     <h1 data-template-id="help-title" class="canva-text font-extrabold mb-6" style="color: rgb(18, 59, 112); font-weight: 800; font-style: normal; font-size: 32px;">Bantuan</h1>
+     <div class="grid sm:grid-cols-2 gap-4">
+      <article class="bg-white border border-slate-200 rounded-2xl p-6">
+       <h2 data-template-id="faq-1-title" class="canva-text font-bold mb-3" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Bagaimana cara mencari tiket?</h2>
+       <p data-template-id="faq-1-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Ketik kota atau nama stasiun, pilih dari daftar, tentukan tanggal dan jumlah penumpang, lalu tekan Cari Tiket. Tombol tukar membalik rute.</p>
+      </article>
+      <article class="bg-white border border-slate-200 rounded-2xl p-6">
+       <h2 data-template-id="faq-2-title" class="canva-text font-bold mb-3" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Bagaimana memilih jadwal dan melihat detail?</h2>
+       <p data-template-id="faq-2-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Gunakan filter harga, waktu, kelas, dan durasi. Lihat Detail atau Pilih Kereta membuka ringkasan kereta sebelum pemesanan.</p>
+      </article>
+      <article class="bg-white border border-slate-200 rounded-2xl p-6">
+       <h2 data-template-id="faq-3-title" class="canva-text font-bold mb-3" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Bagaimana mengisi data penumpang?</h2>
+       <p data-template-id="faq-3-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Isi nama untuk setiap penumpang, pilih kursi berbeda, lalu masukkan telepon serta email kontak yang valid. Tidak perlu memasukkan nomor identitas pemerintah.</p>
+      </article>
+      <article class="bg-white border border-slate-200 rounded-2xl p-6">
+       <h2 data-template-id="faq-4-title" class="canva-text font-bold mb-3" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Apakah pembayaran ini nyata?</h2>
+       <p data-template-id="faq-4-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Tidak. Pilihan Transfer Bank, E-wallet, dan Virtual Account hanya untuk mencoba alur. Tidak ada transaksi atau pemotongan dana.</p>
+      </article>
+      <article class="bg-white border border-slate-200 rounded-2xl p-6 sm:col-span-2">
+       <h2 data-template-id="faq-5-title" class="canva-text font-bold mb-3" style="color: rgb(18, 59, 112); font-weight: 700; font-style: normal; font-size: 24px;">Di mana saya melihat e-ticket?</h2>
+       <p data-template-id="faq-5-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 16px;">Tekan Lihat Tiket setelah simulasi berhasil atau buka Riwayat Pesanan. E-ticket berlabel SIMULASI, bukan tiket resmi, dan riwayat hanya tersimpan di browser yang sama.</p>
+      </article>
+     </div>
+    </section>
+   </main>
+   <footer class="max-w-6xl mx-auto px-4 sm:px-7 py-8 border-t border-slate-200">
+    <p data-template-id="footer-copy" class="canva-text" style="color: rgb(96, 116, 138); font-weight: 400; font-style: normal; font-size: 13px;">© RailTicket · Prototype tugas kuliah. Bukan layanan resmi KAI; tidak memproses pembayaran dan tidak menerbitkan tiket resmi.</p>
+   </footer>
+  </div>
+  <template id="train-template">
+   <article data-template-id="train-card" class="canva-card bg-white surface rounded-2xl border border-slate-100 p-5 sm:p-6">
+    <div class="flex flex-wrap gap-2 items-center mb-4">
+     <span aria-hidden="true">🚆</span>
+     <h2 data-template-id="train-name" class="canva-text font-bold"></h2><span data-template-id="train-class" class="canva-tag bg-[#eaf4ff] rounded-full px-3 py-1 font-semibold"></span>
+    </div>
+    <div class="grid md:grid-cols-[1fr_auto] gap-5 items-center">
+     <div>
+      <p data-template-id="train-stations" class="canva-text font-semibold"></p>
+      <p data-template-id="train-times" class="canva-text mt-2"></p>
+      <div class="route-line my-4 max-w-xs"></div>
+      <p data-template-id="train-duration" class="canva-text"></p>
+     </div>
+     <div class="md:text-right">
+      <p data-template-id="train-price" class="canva-text font-extrabold"></p>
+      <p data-template-id="train-seats" class="canva-text my-2"></p>
+      <div class="flex flex-wrap md:justify-end gap-2">
+       <button data-template-id="train-detail-button" type="button" class="canva-button secondary rounded-xl px-4 py-2 font-semibold"></button><button data-template-id="train-select-button" type="button" class="canva-button primary rounded-xl px-4 py-2 font-semibold"></button>
+      </div>
+     </div>
+    </div>
+   </article>
+  </template>
+  <template id="person-template">
+   <fieldset class="border border-slate-200 rounded-xl p-4 sm:p-5"><legend data-template-id="person-legend" class="canva-text font-bold px-2"></legend>
+    <div class="grid sm:grid-cols-2 gap-4 mt-2">
+     <div>
+      <label data-template-id="person-name-label" class="canva-text block font-semibold mb-2"></label><input class="field person-name" autocomplete="name" maxlength="100" required="">
+     </div>
+     <div>
+      <label data-template-id="person-seat-label" class="canva-text block font-semibold mb-2"></label><select class="field person-seat" required=""></select>
+     </div>
+    </div>
+   </fieldset>
+  </template>
+  <script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const stations = [
+    {city:'Bandung',name:'Bandung (BD)'},{city:'Jakarta',name:'Gambir (GMR)'},{city:'Yogyakarta',name:'Yogyakarta (YK)'},
+    {city:'Surabaya',name:'Surabaya Gubeng (SGU)'},{city:'Semarang',name:'Semarang Tawang (SMT)'},{city:'Solo',name:'Solo Balapan (SLO)'}
+  ];
+  const raw = {
+    'Bandung|Yogyakarta': [['Lodaya Pagi','Ekonomi','07:10',395,245000,28],['Argo Wilis','Eksekutif','10:15',380,430000,17],['Lodaya Siang','Bisnis','15:20',400,315000,24],['Lodaya Malam','Eksekutif','19:25',400,375000,12]],
+    'Bandung|Jakarta': [['Argo Parahyangan','Eksekutif','06:30',175,205000,32],['Parahyangan Pagi','Ekonomi','09:10',195,125000,40],['Argo Parahyangan Siang','Bisnis','14:00',185,165000,25],['Parahyangan Malam','Eksekutif','19:15',175,215000,21]],
+    'Bandung|Surabaya': [['Turangga','Eksekutif','06:50',690,590000,19],['Malabar','Ekonomi','09:20',760,365000,35],['Mutiara Selatan','Bisnis','16:05',725,445000,26],['Turangga Malam','Eksekutif','19:40',680,620000,14]],
+    'Bandung|Semarang': [['Ciremai Pagi','Ekonomi','06:15',440,270000,36],['Ciremai Siang','Bisnis','11:25',425,330000,23],['Argo Ciremai','Eksekutif','16:30',405,425000,18],['Ciremai Malam','Ekonomi','20:10',450,255000,31]],
+    'Jakarta|Yogyakarta': [['Taksaka Pagi','Eksekutif','07:00',410,465000,20],['Gajahwong','Ekonomi','08:35',480,255000,38],['Senja Utama Yogya','Bisnis','15:50',455,340000,27],['Taksaka Malam','Eksekutif','20:30',405,490000,15]],
+    'Jakarta|Surabaya': [['Argo Bromo Anggrek','Eksekutif','08:20',545,680000,16],['Jayabaya','Ekonomi','11:15',690,365000,39],['Sembrani','Bisnis','16:40',600,525000,25],['Argo Bromo Malam','Eksekutif','20:10',550,715000,12]],
+    'Jakarta|Bandung': [['Argo Parahyangan Pagi','Eksekutif','07:15',175,210000,29],['Parahyangan Ekonomi','Ekonomi','10:20',200,130000,41],['Parahyangan Siang','Bisnis','15:05',185,170000,24],['Argo Parahyangan Sore','Eksekutif','18:40',175,220000,18]],
+    'Yogyakarta|Surabaya': [['Sancaka Pagi','Ekonomi','06:45',275,180000,35],['Argo Wilis Timur','Eksekutif','09:30',255,335000,18],['Sancaka Siang','Bisnis','14:15',265,250000,26],['Mutiara Selatan Timur','Eksekutif','19:20',270,345000,14]],
+    'Yogyakarta|Solo': [['Prameks Pagi','Ekonomi','06:20',65,55000,48],['Joglosemarkerto','Bisnis','10:15',70,95000,32],['Prameks Siang','Ekonomi','14:40',65,55000,45],['Joglosemarkerto Sore','Eksekutif','18:10',60,145000,20]],
+    'Semarang|Surabaya': [['Argo Muria Timur','Eksekutif','06:55',225,320000,17],['Ambarawa Ekspres','Ekonomi','09:35',270,175000,38],['Dharmawangsa','Bisnis','15:20',245,245000,24],['Argo Bromo Timur','Eksekutif','19:00',230,345000,16]]
+  };
+  const schedules = Object.fromEntries(Object.entries(raw).map(([key, rows]) => [key, rows.map((r,i) => ({
+    id:key+'-'+i,name:r[0],travelClass:r[1],departure:r[2],minutes:r[3],price:r[4],seats:r[5],number:'KA '+(101+Object.keys(raw).indexOf(key)*4+i)
+  }))]));
+  const state={search:null,train:null,people:[],contact:null,bookings:[],current:null};
+  const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n);
+  const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+  const dateLabel=s=>new Date(s+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+  const stopName=city=>stations.find(s=>s.city===city)?.name||city;
+  const arrival=t=>{const [h,m]=t.departure.split(':').map(Number);const total=h*60+m+t.minutes;return String(Math.floor(total/60)%24).padStart(2,'0')+':'+String(total%60).padStart(2,'0')+(total>=1440?' (+1)':'')};
+  const duration=t=>Math.floor(t.minutes/60)+' jam '+String(t.minutes%60).padStart(2,'0')+' menit';
+  function message(id,text){$(id).textContent=text;$(id).hidden=!text}
+  function line(parent,label,value){const box=document.createElement('div');const small=document.createElement('span');small.className='block text-sm text-slate-500';small.textContent=label;const strong=document.createElement('strong');strong.className='block font-semibold text-[#193249] break-words';strong.textContent=value;box.append(small,strong);parent.append(box)}
+  function show(id,focusSearch=false){
+    if(id==='schedules'&&!state.search){message('global-message','Cari tiket terlebih dahulu untuk melihat jadwal.');id='home';focusSearch=true}
+    if(['detail','passengers','payment'].includes(id)&&!state.train){message('global-message','Belum memilih jadwal. Cari tiket dan pilih kereta terlebih dahulu.');id=state.search?'schedules':'home'}
+    if(['success','ticket'].includes(id)&&!state.current){message('global-message','Belum ada tiket simulasi yang dipilih.');id='history'}
+    if(id==='payment'&&!state.people.length){message('global-message','Lengkapi data penumpang terlebih dahulu.');id='passengers'}
+    document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);
+    document.querySelectorAll('.nav-button').forEach(b=>{if(b.dataset.go===id&&id!=='home')b.setAttribute('aria-current','page');else if(id==='home'&&b.dataset.go==='home'&&!b.dataset.focusSearch)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+    if(id==='history')renderHistory();
+    if(id==='ticket')renderTicket();
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(focusSearch&&id==='home')setTimeout(()=>{$('search-area').scrollIntoView({behavior:'smooth',block:'start'});$('origin').focus({preventScroll:true})},80);
+  }
+  function picker(id){
+    const input=$(id),list=$(id+'-options');
+    function close(){list.hidden=true;input.setAttribute('aria-expanded','false')}
+    function update(){
+      list.replaceChildren();
+      const q=input.value.trim().toLocaleLowerCase('id');
+      stations.filter(s=>(s.city+' '+s.name).toLocaleLowerCase('id').includes(q)).forEach(s=>{
+        const b=document.createElement('button');b.type='button';b.setAttribute('role','option');b.textContent=s.city+' · '+s.name;
+        b.addEventListener('mousedown',e=>e.preventDefault());
+        b.addEventListener('click',()=>{input.value=s.city;close();input.focus()});
+        list.append(b);
+      });
+      list.hidden=!list.children.length;input.setAttribute('aria-expanded',String(!list.hidden));
+    }
+    input.addEventListener('focus',update);input.addEventListener('input',update);
+    input.addEventListener('blur',()=>setTimeout(close,150));
+    input.addEventListener('keydown',e=>{if(e.key==='Escape')close();if(e.key==='ArrowDown'&&!list.hidden){e.preventDefault();list.querySelector('button')?.focus()}if(e.key==='Enter'&&!list.hidden){e.preventDefault();list.querySelector('button')?.click()}});
+    list.addEventListener('keydown',e=>{if(e.key==='Escape'){close();input.focus()}});
+  }
+  picker('origin');picker('destination');
+  $('travel-date').min=today();$('travel-date').value=today();
+  $('origin').value='Bandung';$('destination').value='Yogyakarta';
+  $('swap-button').addEventListener('click',()=>{const v=$('origin').value;$('origin').value=$('destination').value;$('destination').value=v;message('search-error','')});
+  document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go,b.dataset.focusSearch==='true')));
+  document.querySelectorAll('.route-pick').forEach(b=>b.addEventListener('click',()=>{[$('origin').value,$('destination').value]=b.dataset.route.split('|');show('home',true)}));
+  $('search-form').addEventListener('submit',e=>{
+    e.preventDefault();
+    const origin=$('origin').value.trim(),destination=$('destination').value.trim(),date=$('travel-date').value,count=Number($('passenger-count').value);
+    if(!stations.some(s=>s.city===origin)||!stations.some(s=>s.city===destination)){message('search-error','Pilih stasiun asal dan tujuan dari daftar.');return}
+    if(origin===destination||!date||date<today()||count<1||count>4){message('search-error','Pilih stasiun berbeda, tanggal hari ini atau sesudahnya, dan jumlah penumpang yang valid.');return}
+    message('search-error','');message('global-message','');
+    state.search={origin,destination,date,count};state.train=null;state.people=[];
+    ['price-filter','time-filter','class-filter','duration-filter'].forEach(id=>$(id).value='all');
+    renderSchedules();show('schedules');
+  });
+  function renderSchedules(){
+    if(!state.search)return;
+    const s=state.search,key=s.origin+'|'+s.destination,all=schedules[key]||[];
+    $('schedule-query').textContent=`${stopName(s.origin)} → ${stopName(s.destination)} · ${dateLabel(s.date)} · ${s.count} penumpang`;
+    const list=$('schedule-list');list.replaceChildren();
+    const price=$('price-filter').value,time=$('time-filter').value,cls=$('class-filter').value,max=$('duration-filter').value;
+    const items=all.filter(t=>{
+      const hour=Number(t.departure.slice(0,2));
+      return t.seats>=s.count&&(price==='all'||t.price<=Number(price))&&(cls==='all'||t.travelClass===cls)&&(max==='all'||t.minutes<=Number(max))&&(time==='all'||(time==='pagi'&&hour<12)||(time==='siang'&&hour>=12&&hour<18)||(time==='malam'&&hour>=18));
+    });
+    $('unavailable').hidden=all.length>0;
+    $('filtered-empty').hidden=all.length===0||items.length>0;
+    items.forEach(t=>{
+      const fragment=$('train-template').content.cloneNode(true);
+      const set=(id,value)=>fragment.querySelector(`[data-template-id="${id}"]`).textContent=value;
+      set('train-name',t.name+' · '+t.number);set('train-class',t.travelClass);
+      set('train-stations',stopName(s.origin)+' → '+stopName(s.destination));
+      set('train-times',t.departure+' → '+arrival(t));set('train-duration','Durasi '+duration(t));
+      set('train-price',money(t.price)+' / orang');set('train-seats',t.seats+' kursi simulasi tersedia');
+      fragment.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{state.train=t;state.people=[];renderDetail();show('detail')}));
+      list.append(fragment);
+    });
+  }
+  ['price-filter','time-filter','class-filter','duration-filter'].forEach(id=>$(id).addEventListener('change',renderSchedules));
+  function renderDetail(){
+    const s=state.search,t=state.train;if(!s||!t)return;
+    $('detail-name').textContent=t.name+' · '+t.number;$('detail-class').textContent=t.travelClass;
+    const box=$('detail-summary');box.replaceChildren();
+    [['Stasiun keberangkatan',stopName(s.origin)],['Stasiun kedatangan',stopName(s.destination)],['Tanggal',dateLabel(s.date)],['Berangkat / tiba',t.departure+' → '+arrival(t)],['Durasi',duration(t)],['Harga per penumpang',money(t.price)],['Kursi tersedia',t.seats+' kursi simulasi'],['Penumpang',s.count+' orang']].forEach(([l,v])=>line(box,l,v));
+  }
+  function renderPassengerFields(){
+    const box=$('passenger-fields');box.replaceChildren();
+    for(let i=0;i<state.search.count;i++){
+      const fragment=$('person-template').content.cloneNode(true);
+      fragment.querySelector('[data-template-id="person-legend"]').textContent='Penumpang '+(i+1);
+      const name=fragment.querySelector('.person-name'),seat=fragment.querySelector('.person-seat');
+      name.id='person-name-'+i;seat.id='person-seat-'+i;
+      fragment.querySelector('[data-template-id="person-name-label"]').htmlFor=name.id;
+      fragment.querySelector('[data-template-id="person-seat-label"]').htmlFor=seat.id;
+      name.value=state.people[i]?.name||'';
+      const first=document.createElement('option');first.value='';first.textContent='Pilih kursi';seat.append(first);
+      for(let n=1;n<=Math.min(state.train.seats,48);n++){
+        const o=document.createElement('option');o.value=String(n).padStart(2,'0')+String.fromCharCode(65+(i%4));o.textContent='Gerbong 1 · '+o.value;seat.append(o);
+      }
+      seat.value=state.people[i]?.seat||'';
+      box.append(fragment);
+    }
+    $('contact-phone').value=state.contact?.phone||'';
+    $('contact-email').value=state.contact?.email||'';
+    const summary=$('passenger-summary');summary.replaceChildren();
+    line(summary,'Kereta',state.train.name+' · '+state.train.travelClass);
+    line(summary,'Perjalanan',state.search.origin+' → '+state.search.destination);
+    line(summary,'Tanggal dan waktu',dateLabel(state.search.date)+' · '+state.train.departure);
+    line(summary,'Total sementara',money(state.train.price*state.search.count));
+  }
+  $('continue-booking').addEventListener('click',()=>{renderPassengerFields();show('passengers')});
+  $('passenger-form').addEventListener('submit',e=>{
+    e.preventDefault();
+    if(!state.train||!state.search){message('passenger-error','Belum memilih jadwal. Kembali ke pencarian dan pilih kereta.');return}
+    const phone=$('contact-phone').value.trim(),email=$('contact-email').value.trim();
+    const names=[...document.querySelectorAll('.person-name')].map(el=>el.value.trim());
+    const seats=[...document.querySelectorAll('.person-seat')].map(el=>el.value);
+    let error='';
+    if(!/^\+?[0-9\s()-]{8,20}$/.test(phone)||phone.replace(/\D/g,'').length<8)error='Masukkan nomor telepon kontak yang valid, minimal 8 digit.';
+    else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))error='Masukkan alamat email kontak yang valid.';
+    else if(names.some(n=>n.length<2))error='Isi nama lengkap setiap penumpang, minimal 2 karakter.';
+    else if(seats.some(v=>!v))error='Pilih kursi untuk setiap penumpang.';
+    else if(new Set(seats).size!==seats.length)error='Setiap penumpang harus memilih kursi yang berbeda.';
+    message('passenger-error',error);if(error)return;
+    state.people=names.map((name,i)=>({name,seat:seats[i]}));state.contact={phone,email};
+    renderPayment();show('payment');
+  });
+  function renderPayment(){
+    const s=state.search,t=state.train,box=$('payment-summary');box.replaceChildren();
+    [['Kereta',t.name+' · '+t.travelClass],['Rute',stopName(s.origin)+' → '+stopName(s.destination)],['Keberangkatan',dateLabel(s.date)+' · '+t.departure],['Penumpang',state.people.map(p=>p.name+' ('+p.seat+')').join(', ')],['Harga per tiket',money(t.price)],['Jumlah tiket',String(s.count)],['Biaya tambahan',money(0)]].forEach(([l,v])=>line(box,l,v));
+    $('payment-total').textContent=money(t.price*s.count);message('payment-error','');
+  }
+  const storageKey='railticket-simulation-bookings-v1';
+  try{const saved=JSON.parse(localStorage.getItem(storageKey)||'[]');if(Array.isArray(saved))state.bookings=saved.filter(b=>b&&b.code&&b.search&&b.train&&Array.isArray(b.people)).slice(0,100)}catch(_){}
+  $('pay-button').addEventListener('click',()=>{
+    message('payment-error','');
+    if(!state.search||!state.train||state.people.length!==state.search.count){message('payment-error','Data perjalanan belum lengkap. Kembali, lengkapi data penumpang, lalu coba lagi.');return}
+    const method=document.querySelector('input[name="method"]:checked')?.value;
+    if(!method){message('payment-error','Pilih metode pembayaran simulasi sebelum melanjutkan.');return}
+    const button=$('pay-button');button.disabled=true;button.classList.add('opacity-60');
+    try{
+      const code='RT-SIM-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,5).toUpperCase();
+      const booking={code,search:{...state.search},train:{...state.train},people:state.people.map(p=>({...p})),method,total:state.train.price*state.search.count,status:'Berhasil · Simulasi'};
+      const next=[booking,...state.bookings].slice(0,100);
+      localStorage.setItem(storageKey,JSON.stringify(next));
+      state.bookings=next;state.current=booking;renderSuccess();show('success');
+    }catch(_){message('payment-error','Pembayaran simulasi belum berhasil disimpan di browser. Periksa izin penyimpanan, lalu coba lagi. Tidak ada transaksi nyata yang dilakukan.')}
+    finally{button.disabled=false;button.classList.remove('opacity-60')}
+  });
+  function bookingLines(parent,b){
+    parent.replaceChildren();
+    [['Kode booking',b.code],['Penumpang',b.people.map(p=>p.name).join(', ')],['Kereta',b.train.name+' · '+b.train.travelClass],['Rute',stopName(b.search.origin)+' → '+stopName(b.search.destination)],['Keberangkatan',dateLabel(b.search.date)+' · '+b.train.departure],['Kursi',b.people.map(p=>p.seat).join(', ')],['Total pembayaran simulasi',money(b.total)]].forEach(([l,v])=>line(parent,l,v));
+  }
+  function renderSuccess(){const b=state.current;$('success-code').textContent=b.code;bookingLines($('success-summary'),b)}
+  function renderTicket(){if(state.current)bookingLines($('ticket-content'),state.current)}
+  function renderHistory(){
+    const box=$('history-list');box.replaceChildren();$('history-empty').hidden=state.bookings.length>0;
+    state.bookings.forEach(b=>{
+      const card=document.createElement('article');card.className='bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 surface';
+      const content=document.createElement('div');content.className='grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5';
+      [['Kode booking',b.code],['Kereta',b.train.name],['Rute',b.search.origin+' → '+b.search.destination],['Tanggal',dateLabel(b.search.date)],['Total',money(b.total)],['Status',b.status]].forEach(([l,v])=>line(content,l,v));
+      const button=document.createElement('button');button.type='button';button.className='primary rounded-xl px-5 py-2 font-semibold';button.textContent='Lihat E-ticket';
+      button.addEventListener('click',()=>{state.current=b;show('ticket')});card.append(content,button);box.append(card);
+    });
+  }
+  lucide.createIcons();
+})();
+</script>
+ 
+</body></html>
